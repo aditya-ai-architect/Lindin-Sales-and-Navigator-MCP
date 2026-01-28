@@ -262,10 +262,25 @@ server.tool(
 );
 
 // -- Sales Navigator --
+// Note: Sales Navigator tools require an active Sales Navigator subscription.
+
+function salesNavError(toolName: string, error: unknown): { content: Array<{ type: "text"; text: string }>; isError: true } {
+  const msg = error instanceof Error ? error.message : String(error);
+  const isSeatRequired = msg.includes("403") || msg.includes("SALES_SEAT") || msg.includes("402");
+  return {
+    content: [{
+      type: "text" as const,
+      text: isSeatRequired
+        ? `${toolName} requires an active LinkedIn Sales Navigator subscription. Error: ${msg}`
+        : `${toolName} failed: ${msg}`,
+    }],
+    isError: true,
+  };
+}
 
 server.tool(
   "sales_search_leads",
-  "Search for leads using LinkedIn Sales Navigator with filters like title, company, geography, industry, seniority, and function",
+  "Search for leads using LinkedIn Sales Navigator (requires Sales Navigator subscription)",
   {
     keywords: z.string().optional().describe("Search keywords"),
     title: z.string().optional().describe("Filter by job title"),
@@ -287,26 +302,30 @@ server.tool(
       .describe("Number of results (default 25)"),
   },
   async (params) => {
-    const result = await client.salesSearchLeads({
-      keywords: params.keywords,
-      title: params.title,
-      company: params.company,
-      geography: params.geography,
-      industry: params.industry,
-      seniorityLevel: params.seniority_level,
-      functionParam: params.function_area,
-      start: params.start,
-      count: params.count,
-    });
-    return {
-      content: [{ type: "text", text: formatResult(result) }],
-    };
+    try {
+      const result = await client.salesSearchLeads({
+        keywords: params.keywords,
+        title: params.title,
+        company: params.company,
+        geography: params.geography,
+        industry: params.industry,
+        seniorityLevel: params.seniority_level,
+        functionParam: params.function_area,
+        start: params.start,
+        count: params.count,
+      });
+      return {
+        content: [{ type: "text", text: formatResult(result) }],
+      };
+    } catch (error) {
+      return salesNavError("sales_search_leads", error);
+    }
   }
 );
 
 server.tool(
   "sales_search_accounts",
-  "Search for accounts (companies) using LinkedIn Sales Navigator with geography and industry filters",
+  "Search for accounts (companies) using LinkedIn Sales Navigator (requires Sales Navigator subscription)",
   {
     keywords: z.string().optional().describe("Search keywords"),
     geography: z.string().optional().describe("Filter by geography/location"),
@@ -318,22 +337,26 @@ server.tool(
       .describe("Number of results (default 25)"),
   },
   async (params) => {
-    const result = await client.salesSearchAccounts({
-      keywords: params.keywords,
-      geography: params.geography,
-      industry: params.industry,
-      start: params.start,
-      count: params.count,
-    });
-    return {
-      content: [{ type: "text", text: formatResult(result) }],
-    };
+    try {
+      const result = await client.salesSearchAccounts({
+        keywords: params.keywords,
+        geography: params.geography,
+        industry: params.industry,
+        start: params.start,
+        count: params.count,
+      });
+      return {
+        content: [{ type: "text", text: formatResult(result) }],
+      };
+    } catch (error) {
+      return salesNavError("sales_search_accounts", error);
+    }
   }
 );
 
 server.tool(
   "get_sales_profile",
-  "Get a lead's profile from Sales Navigator by their lead/profile ID",
+  "Get a lead's profile from Sales Navigator (requires Sales Navigator subscription)",
   {
     lead_id: z
       .string()
@@ -342,16 +365,20 @@ server.tool(
       ),
   },
   async ({ lead_id }) => {
-    const result = await client.getSalesProfile(lead_id);
-    return {
-      content: [{ type: "text", text: formatResult(result) }],
-    };
+    try {
+      const result = await client.getSalesProfile(lead_id);
+      return {
+        content: [{ type: "text", text: formatResult(result) }],
+      };
+    } catch (error) {
+      return salesNavError("get_sales_profile", error);
+    }
   }
 );
 
 server.tool(
   "get_saved_leads",
-  "Get your saved leads from Sales Navigator",
+  "Get your saved leads from Sales Navigator (requires Sales Navigator subscription)",
   {
     start: z.number().optional().describe("Pagination start index (default 0)"),
     count: z
@@ -360,16 +387,20 @@ server.tool(
       .describe("Number of results (default 25)"),
   },
   async ({ start, count }) => {
-    const result = await client.getSavedLeads(start, count);
-    return {
-      content: [{ type: "text", text: formatResult(result) }],
-    };
+    try {
+      const result = await client.getSavedLeads(start, count);
+      return {
+        content: [{ type: "text", text: formatResult(result) }],
+      };
+    } catch (error) {
+      return salesNavError("get_saved_leads", error);
+    }
   }
 );
 
 server.tool(
   "get_lead_lists",
-  "Get all lead lists from Sales Navigator",
+  "Get all lead lists from Sales Navigator (requires Sales Navigator subscription)",
   {
     start: z.number().optional().describe("Pagination start index (default 0)"),
     count: z
@@ -378,16 +409,20 @@ server.tool(
       .describe("Number of results (default 25)"),
   },
   async ({ start, count }) => {
-    const result = await client.getLeadLists(start, count);
-    return {
-      content: [{ type: "text", text: formatResult(result) }],
-    };
+    try {
+      const result = await client.getLeadLists(start, count);
+      return {
+        content: [{ type: "text", text: formatResult(result) }],
+      };
+    } catch (error) {
+      return salesNavError("get_lead_lists", error);
+    }
   }
 );
 
 server.tool(
   "get_lead_list_members",
-  "Get the leads within a specific Sales Navigator lead list",
+  "Get the leads within a specific Sales Navigator lead list (requires Sales Navigator subscription)",
   {
     list_id: z.string().describe("The lead list ID"),
     start: z.number().optional().describe("Pagination start index (default 0)"),
@@ -397,16 +432,20 @@ server.tool(
       .describe("Number of results (default 25)"),
   },
   async ({ list_id, start, count }) => {
-    const result = await client.getLeadListMembers(list_id, start, count);
-    return {
-      content: [{ type: "text", text: formatResult(result) }],
-    };
+    try {
+      const result = await client.getLeadListMembers(list_id, start, count);
+      return {
+        content: [{ type: "text", text: formatResult(result) }],
+      };
+    } catch (error) {
+      return salesNavError("get_lead_list_members", error);
+    }
   }
 );
 
 server.tool(
   "get_lead_recommendations",
-  "Get lead recommendations from Sales Navigator based on your activity and saved leads",
+  "Get lead recommendations from Sales Navigator (requires Sales Navigator subscription)",
   {
     start: z.number().optional().describe("Pagination start index (default 0)"),
     count: z
@@ -415,10 +454,14 @@ server.tool(
       .describe("Number of results (default 25)"),
   },
   async ({ start, count }) => {
-    const result = await client.getLeadRecommendations(start, count);
-    return {
-      content: [{ type: "text", text: formatResult(result) }],
-    };
+    try {
+      const result = await client.getLeadRecommendations(start, count);
+      return {
+        content: [{ type: "text", text: formatResult(result) }],
+      };
+    } catch (error) {
+      return salesNavError("get_lead_recommendations", error);
+    }
   }
 );
 
