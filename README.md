@@ -1,0 +1,1 @@
+# Lindin-Sales-and-Navigator-MCP
